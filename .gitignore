@@ -14,3 +14,6 @@
 /.direnv/
 /.vscode/
 /.idea/
+
+# Local compiler reproducers
+/repro/
