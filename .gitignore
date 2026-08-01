@@ -1,0 +1,16 @@
+# GCC source checkout
+/gcc/
+
+# Out-of-tree GCC builds and installations
+/build-*/
+/install-*/
+
+# Build output
+*.log
+/result
+/result-*
+
+# Local editor and environment state
+/.direnv/
+/.vscode/
+/.idea/
