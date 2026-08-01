@@ -56,7 +56,6 @@ being built. This prevents host system files from being linked with runtime
 paths injected by Nix's wrapped linker.
 
 ```bash
-rm -rf build-debug install-debug
 mkdir -p build-debug install-debug
 cd build-debug
 
