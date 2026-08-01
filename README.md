@@ -1,25 +1,20 @@
 # GCCDevFlake
 
-A pinned Nix development environment for building, testing, and debugging GCC from source.
+A pinned Nix development environment for building, testing and debugging GCC
+from an editable source checkout.
 
-The flake provides the bootstrap compiler, GCC build dependencies, testsuite tools, debuggers, and common reproducer tooling. The GCC source tree remains a normal editable Git checkout and is built out of tree.
+The flake provides GCC build dependencies, testsuite tools, debugging tools and
+standalone reproducer tooling. GCC itself remains a normal Git checkout and is
+built out of tree.
 
-## What this provides
+## Supported environment
 
-* Pinned bootstrap GCC and Binutils
-* GMP, MPFR, MPC, ISL, zlib, and zstd
-* Autoconf 2.69 and GCC source-generation tools
-* DejaGnu, Expect, and Tcl for the GCC testsuite
-* GDB and patch-development utilities
-* CMake and Ninja for standalone compiler reproducers
-* `x86_64-linux` and `aarch64-linux` development shells
-* Reduced host-environment contamination
+This repository currently provides and validates an `x86_64-linux` development
+shell.
 
-This is a reproducible development shell, not a container or security sandbox.
-
-## Requirements
-
-Install Nix with flakes enabled.
+It is a development environment, not a container or security sandbox. The
+development tools are pinned by `flake.lock`; the GCC source revision is pinned
+separately through Git.
 
 ## Enter the environment
 
@@ -29,23 +24,7 @@ cd GCCDevFlake
 nix develop
 ```
 
-For a cleaner environment that discards most inherited variables:
-
-```bash
-nix develop -i \
-  -k HOME \
-  -k USER \
-  -k TERM \
-  -k COLORTERM \
-  -k SSH_AUTH_SOCK \
-  -k XDG_RUNTIME_DIR
-```
-
-The GCC checkout and generated directories are intentionally excluded from this repository.
-
 ## Clone GCC
-
-The GitHub repository is a mirror. GCC's own Git server remains the authoritative upstream but might cause errors transmitting the entire repository.
 
 ```bash
 git clone \
@@ -59,13 +38,7 @@ git -C gcc remote add upstream https://gcc.gnu.org/git/gcc.git
 git -C gcc -c http.version=HTTP/1.1 fetch upstream master
 ```
 
-Create the out-of-tree directories:
-
-```bash
-mkdir -p build-debug install-debug repro
-```
-
-For a development branch:
+Create a development branch and prepare generated-file timestamps:
 
 ```bash
 git -C gcc switch -c my-gcc-change upstream/master
@@ -76,9 +49,15 @@ git -C gcc switch -c my-gcc-change upstream/master
 )
 ```
 
-## Configure a fast development build
+## Configure a development build
+
+The validated Linux workflow uses the host system's native Binutils for the GCC
+being built. This prevents host system files from being linked with runtime
+paths injected by Nix's wrapped linker.
 
 ```bash
+rm -rf build-debug install-debug
+mkdir -p build-debug install-debug
 cd build-debug
 
 ../gcc/configure \
@@ -88,10 +67,11 @@ cd build-debug
   --disable-multilib \
   --disable-nls \
   --disable-werror \
-  --enable-checking=yes,extra
+  --enable-checking=yes,extra \
+  --with-build-time-tools=/usr/bin \
+  --with-as=/usr/bin/as \
+  --with-ld=/usr/bin/ld
 ```
-
-This is intended for compiler development and rapid iteration. It is not a replacement for GCC's complete bootstrap and regression-testing requirements before submitting a patch.
 
 ## Build
 
@@ -103,7 +83,7 @@ make -j"$(nproc)" \
   all-target-libatomic
 ```
 
-Install into the local workspace prefix:
+## Install locally
 
 ```bash
 make \
@@ -113,21 +93,19 @@ make \
   install-target-libatomic
 ```
 
-The `libatomic` step is required by current GCC development versions, which may link through `libatomic_asneeded`.
-
 ## Smoke test
 
 ```bash
-cat >/tmp/gcc-dev-smoke.cpp <<'EOF'
+cat >/tmp/gcc-dev-smoke.cpp <<'CPP'
 #include <iostream>
 
 int main()
 {
-    std::cout << "GCC development compiler works\n";
+    std::cout << "GCC dev compiler works\n";
 }
-EOF
+CPP
 
-./install-debug/bin/g++ \
+../install-debug/bin/g++ \
   -std=c++23 \
   /tmp/gcc-dev-smoke.cpp \
   -o /tmp/gcc-dev-smoke
@@ -138,20 +116,12 @@ EOF
 ## Validate the flake
 
 ```bash
+nix fmt
 nix flake check
-nix flake show
 ```
-
-## Generated build files
-
-The shell pins Autoconf 2.69, as required by GCC.
-
-The currently available Automake version may be newer than GCC's required Automake 1.15.1 for regenerating checked-in `Makefile.in` files. Normal GCC source changes, compiler builds, and testsuite work do not require regenerating those files.
-
-Use the exact upstream-required tool versions before modifying or regenerating GCC's Autotools-generated files.
 
 ## License
 
 The files in this repository are available under the MIT License.
 
-GCC itself is a separate project and is distributed under its own licensing terms.
+GCC is a separate project distributed under its own licensing terms.

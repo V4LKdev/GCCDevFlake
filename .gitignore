@@ -1,19 +1,30 @@
 # GCC source checkout
 /gcc/
 
-# Out-of-tree GCC builds and installations
+# Out-of-tree builds and local installations
 /build-*/
 /install-*/
 
-# Build output
+# Local reproducers
+/repro/
+
+# Generated compiler output
+/gcm.cache/
+*.gcm
 *.log
 /result
 /result-*
 
-# Local editor and environment state
+# Crash dumps
+/core
+/core.*
+*.core
+
+# Local environment and editor state
 /.direnv/
 /.vscode/
 /.idea/
 
-# Local compiler reproducers
-/repro/
+# Operating-system metadata
+.DS_Store
+Thumbs.db
